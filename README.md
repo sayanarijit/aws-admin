@@ -28,3 +28,17 @@ LET'S GET STARTED: 1. Kindly copy all keys inside '/opt/aws-admin/database/keys'
 ```
 
 * Follow the instructions in "LET'S GET STARTED" section.
+
+### How to create exception list of servers
+
+* To create exception list of servers, create a file inside 'ignored' directory with any name
+* In that file, the first line will start with '\*' followed by exception message to be displayed
+* Following first line, enter the hostnames to be excluded line by line
+* For different exceptions, seperate files can be created inside 'ignored' directory
+* Below is a demo exception file
+```
+* Use your own login credentials with simple ssh command to log into this server
+
+server1
+server2
+```
