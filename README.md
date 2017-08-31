@@ -4,6 +4,7 @@ AWS servers administration and key management made simple (for OS level support 
 ### Install
 
 * Download and run install.sh
+
 ``` bash
 wget https://github.com/sayanarijit/aws-admin/archive/master.zip
 unzip master.zip
@@ -11,10 +12,11 @@ cd aws-admin-master && sudo ./install.sh
 ```
 
 * You should get an output like below
+
 ```
 Created group 'aws-admins'
 
-‘aws-ssh’ -> ‘/opt/aws-admin/bin/aws-ssh’
+'aws-ssh' -> '/opt/aws-admin/bin/aws-ssh'
 
 SUCCESS: Successfully installed aws-admin
 
@@ -36,9 +38,12 @@ LET'S GET STARTED: 1. Kindly copy all keys inside '/opt/aws-admin/database/keys'
 * Following first line, enter the hostnames to be excluded line by line
 * For different exceptions, seperate files can be created inside 'ignored' directory
 * Below is a demo exception file
+
 ```
 * Use your own login credentials with simple ssh command to log into this server
 
 server1
 server2
+server3
+server4
 ```
