@@ -14,7 +14,7 @@ cd aws-admin-master && sudo ./install.sh
 ```
 Created group 'aws-admins'
 
-‘aws-ssh’ -> ‘/opt/aws-admin/bin/aws-ssh’
+'aws-ssh' -> '/opt/aws-admin/bin/aws-ssh'
 
 SUCCESS: Successfully installed aws-admin
 
@@ -38,7 +38,7 @@ LET'S GET STARTED: 1. Kindly copy all keys inside '/opt/aws-admin/database/keys'
 * Below is a demo exception file
 
 ```
-\* Use your own login credentials with simple ssh command to log into this server
+* Use your own login credentials with simple ssh command to log into this server
 
 server1
 server2
