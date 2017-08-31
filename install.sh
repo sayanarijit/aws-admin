@@ -28,5 +28,5 @@ echo
 echo "LET'S GET STARTED: 1. Kindly copy all keys inside '"$KEYS_DIR"' directory with owner as 'root' and '400' permission"
 echo "                   2. Add '"$BIN_DIR"' directory to 'root' user's PATH variable ('export PATH="$BIN_DIR:\$PATH"')"
 echo "                   3. Give people permission to run 'sudo aws-ssh' ('%aws-admins ALL = "$BIN_DIR"/aws-ssh') in sudoers file"
-echo "                   4. Run 'sudo aws-ssh <hostname>' to find and map the appropriate key for <hostname> in database"
-echo "                   NOTE: For 1st time login to any server, it may take some time find the appropriate key"
+echo "                   4. Run 'sudo aws-ssh <hostname>' to find and map the appropriate key for <hostname> in database and log into it"
+echo "                   NOTE: For 1st time login to any server, it may take some time to find the appropriate key"
