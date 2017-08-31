@@ -38,8 +38,8 @@ LET'S GET STARTED: 1. Kindly copy all keys inside '/opt/aws-admin/database/keys'
 * Following first line, enter the hostnames to be excluded line by line
 * For different exceptions, seperate files can be created inside 'ignored' directory
 * Below is a demo exception file
-```
 
+```
 * Use your own login credentials with simple ssh command to log into this server
 
 server1
