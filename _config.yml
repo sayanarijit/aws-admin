@@ -1,1 +1,8 @@
+title: aws-admin
+description: AWS servers administration and key management made simple (for OS level support only)
+google_analytics: 
+show_downloads: true
 theme: jekyll-theme-midnight
+
+gems:
+  - jekyll-mentions
