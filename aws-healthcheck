@@ -1,0 +1,174 @@
+#!/bin/bash
+
+# set -x  # For debugging
+
+echoerr ()
+{
+  (>&2 echo $*)
+  return 0
+}
+
+validate ()
+{
+  local host=$1
+  if grep -wq ^$host "$IGNORED_DIR"/*; then
+    local file=$(grep -lw ^$host "$IGNORED_DIR"/*|head -1)
+    local msg=$(head -1 $file|cut -d* -f2)
+    echoerr -e "IGNORED:"$msg
+    exit 1
+  fi
+}
+
+generate-health-report ()
+{
+  local host=$1
+
+  ! ping -c1 -w1 $host &>/dev/null && echo -e "Status : Ping_failed" && return 1
+
+  sudo ssh &>/dev/null
+  local uname=$(timeout -s9 20s $SSH_STRING "uname" 2>/dev/null)
+
+  [ ! "$uname" ] && echo -e "Status : SSH_failed" && return 1
+
+  [ "$uname" != "Linux" ] && echoerr "ERROR: Right now I only check Linux servers... :(" && exit 1
+
+  # local cpu_usage=$($SSH_STRING "grep cpu /proc/stat"|awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'|cut -d. -f1 2>/dev/null)
+  # local uptime=$($SSH_STRING "cat /proc/uptime"|awk '{print $1/(24*60*60)}' | cut -d. -f1 2>/dev/null)
+  # local ram_usage=$($SSH_STRING "free -t"|grep "Total"|awk '{print $3/$2 * 100.0}'|cut -d. -f1 2>/dev/null)
+  # local disk_usage=$($SSH_STRING "df -Pl"|grep "^/dev/"|awk '{print "Disk_usage_"$NF"_:_"$(NF-1)}' 2>/dev/null)
+
+  local data=$($SSH_STRING "cat /proc/uptime; grep cpu /proc/stat; free -t; df -Pl")
+
+  local uptime=$(echo -e "$data"|head -1|awk '{print $1/(24*60*60)}' | cut -d. -f1)
+  local cpu_usage=$(echo -e "$data"|grep ^cpu|awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'|cut -d. -f1)
+  local ram_usage=$(echo -e "$data"|grep "^Total:"|awk '{print $3/$2 * 100.0}'|cut -d. -f1 2>/dev/null)
+  local disk_usage=$(echo -e "$data"|grep "^/dev/"|awk '{print "Disk_usage_"$NF"_:_"$(NF-1)}' 2>/dev/null)
+
+  local disk_full=$(echo -e "$disk_usage"|grep -e "$disk_usage_regex" 2>/dev/null)
+  local status=0
+
+  echo -en "CPU_usage : "$cpu_usage"%"
+  if [ "$cpu_usage" -ge $cpu_usage_threshold ]; then
+    echo -e "\e[31m (!) \e[0m"
+    status=1
+  else
+    echo
+  fi
+  echo -en "RAM_usage : "$ram_usage"%"
+  if [ "$ram_usage" -ge $ram_usage_threshold ]; then
+    echo -e "\e[31m (!) \e[0m"
+    status=1
+  else
+    echo
+  fi
+  echo -en "Uptime : "$uptime"_days"
+  if [ "$uptime" -ge $uptime_threshold ]; then
+    echo -e "\e[31m (!) \e[0m"
+    status=1
+  else
+    echo
+  fi
+  for d in $disk_usage; do
+    echo -en "$d"|sed 's/\_\:\_/\ \:\ /g'
+    if echo -e "$d"|grep -qe "$disk_usage_regex"; then
+      echo -e "\e[31m (!) \e[0m"
+      status=1
+    else
+      echo
+    fi
+  done
+
+  if [ "$status" == 1 ]; then
+    echo -e "Status : Host_is_unhealthy"
+    return 1
+  else
+    echo -e "Status : Host_is_healthy"
+    return 0
+  fi
+}
+
+more-info ()
+{
+  local host=$1
+  local resource=$2
+  local top=$3
+
+  # RAM usage info
+  if [ "$resource" == "RAM" ]; then
+    local ram_consumers=$($SSH_STRING "COLUMNS=100 ps aux"|grep -v USER|sort -nrk 4|head -$top)
+    if [ "$ram_consumers" ]; then
+      echo
+      echo "* Top $top $resource consumers:"
+      echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND"
+      echo -e "$ram_consumers"
+      return 0
+    else
+      return 1
+    fi
+  # CPU usage info
+  elif [ "$resource" == "CPU" ]; then
+    local cpu_consumers=$($SSH_STRING "COLUMNS=100 ps aux"|grep -v USER|sort -nrk 3|head -$top)
+    if [ "$cpu_consumers" ]; then
+      echo
+      echo "* Top $top $resource consumers:"
+      echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND"
+      echo -e "$cpu_consumers"
+      return 0
+    else
+      return 1
+    fi
+  # Disk usage info
+  elif echo $resource|grep -q "^/"; then
+    local map_file="/script/database/aws/servers/$host"
+    local u=$(cat $map_file|cut -d: -f1)
+    local k=$(cat $map_file|cut -d: -f2)
+    local ssh_string="sudo ssh -tt -q -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i $k -l $u $host"
+    local largest_files=$($ssh_string "sudo find $resource -xdev -type f -size +10000000c -exec ls -l {} \; \
+     |sort -grk5|head -$top"|awk '{print $5" "$3":"$4" "$9}'|column -t)
+    if [ "$largest_files" ]; then
+      echo
+      echo "* Largest files in $resource:"
+      echo -e "$largest_files"
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
+
+# Variables --------------------------------------------------------------------
+
+DATABASE_DIR="/opt/aws-admin/database"
+IGNORED_DIR="$DATABASE_DIR/ignored"
+
+host=$1
+while [ ! "$host" ]; do
+  read -p "Enter host name : " host
+done
+
+validate $host
+
+action=$2
+
+SSH_STRING="/script/collection/aws-ssh $host"
+
+cpu_usage_threshold=80
+uptime_threshold=365
+ram_usage_threshold=80
+disk_usage_regex='8[0-9]%\|9[0-9]%\|100%'
+
+# Execute ----------------------------------------------------------------------
+
+report=$(generate-health-report $host | column -t | tr "_" " ")
+status=$?
+echo -e "$report"
+
+# More info
+issues=$(echo -e "$report" | grep "(!)")
+echo -e "$issues" | grep -q "CPU" && more-info $host "CPU" 3
+echo -e "$issues" | grep -q "RAM" && more-info $host "RAM" 3
+if echo -e "$issues" | grep -q "Disk usage"; then
+  for d in $(echo -e "$issues"|grep "(!)"|grep "Disk usage"|awk '{print $3}'); do
+    more-info $host $d 20
+  done
+fi
