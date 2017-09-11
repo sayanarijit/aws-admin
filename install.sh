@@ -16,8 +16,12 @@ echo
 groupadd aws-admins && usermod -a -G aws-admins root && echo "Created group 'aws-admins'" || exit 1
 echo
 
-# Copy script
-cp -v aws-ssh "$BIN_DIR" && chown -R root:aws-admins "$INSTALLATION_DIR" && chmod -R 0770 "$INSTALLATION_DIR" || exit 1
+# Copy scripts
+cp -v aws-ssh "$BIN_DIR" || exit 1
+cp -v aws-healthcheck "$BIN_DIR" || exit 1
+
+# Set permissions
+chown -R root:aws-admins "$INSTALLATION_DIR" && chmod -R 0770 "$INSTALLATION_DIR" || exit 1
 echo
 
 # Instructions
