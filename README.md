@@ -17,6 +17,7 @@ cd aws-admin-master && sudo ./install.sh
 Created group 'aws-admins'
 
 'aws-ssh' -> '/opt/aws-admin/bin/aws-ssh'
+'aws-healthcheck' -> '/opt/aws-admin/bin/aws-healthcheck'
 
 SUCCESS: Successfully installed aws-admin
 
